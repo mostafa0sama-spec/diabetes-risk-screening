@@ -94,7 +94,60 @@ with st.form("screening_form"):
     )
     heart_val = 1 if heart_choice == "Yes" else 0
 
-    # 6. PhysHlth
+    # 6. PhysHlth (تم تصريح المعاملات بوضوح لتفادي مشاكل الأقواس)
     phys_hlth_val = st.slider(
         "For how many days during the past 30 days was your physical health not good (due to illness or injury)?",
-        0, 30, 0
+        min_value=0,
+        max_value=30,
+        value=0,
+        step=1
+    )
+
+    # 7. Income
+    income_categories = {
+        "Less than $10,000": 1,
+        "$10,000 to $15,000": 2,
+        "$15,000 to $20,000": 3,
+        "$20,000 to $25,000": 4,
+        "$25,000 to $35,000": 5,
+        "$35,000 to $50,000": 6,
+        "$50,000 to $75,000": 7,
+        "$75,000 or more": 8
+    }
+    income_choice = st.selectbox(
+        "Annual Household Income Level:",
+        list(income_categories.keys()),
+        index=4
+    )
+    income_val = income_categories[income_choice]
+
+    submit = st.form_submit_button("Assess Diabetes Risk")
+
+if submit:
+    user_data = {
+        "GenHlth": gen_hlth_val,
+        "BMI": bmi_val,
+        "Age": age_val,
+        "DiffWalk": diff_walk_val,
+        "HeartDiseaseorAttack": heart_val,
+        "PhysHlth": phys_hlth_val,
+        "Income": income_val
+    }
+    input_df = pd.DataFrame([user_data])[features]
+    prob = model.predict_proba(input_df)[0, 1]
+    
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    col1.metric("Estimated Risk Probability", f"{prob * 100:.1f}%")
+    
+    if prob >= threshold:
+        col2.error("Risk Level: HIGH 🔴")
+        st.write("### Recommended Next Steps:")
+        st.write("- It is strongly advised to schedule a consultation with a healthcare provider.")
+        st.write("- Consider taking a fasting blood glucose test and a Glycated Hemoglobin (HbA1c) test.")
+        st.write("- Discuss lifestyle modifications, including blood pressure and BMI management.")
+    else:
+        col2.success("Risk Level: LOW 🟢")
+        st.write("### Recommended Next Steps:")
+        st.write("- Current survey metrics indicate low risk.")
+        st.write("- Maintain a balanced nutritional diet and regular physical activity.")
